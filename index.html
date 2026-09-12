@@ -1,0 +1,110 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#c8552a">
+<title>7 gegen Martin Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+
+<div class="frame"><div class="sheet">
+<div class="wrap">
+  <header class="top">
+    <img src="assets/logo.webp" alt="" width="104" height="104">
+    <div class="eyebrow">7 vs. Martin</div>
+    <div class="brand">Quiz</div>
+    <span class="tag" id="modeTag">Bewährungsprobe</span>
+  </header>
+  <div class="rule"><span>★</span></div>
+  <main id="app"><p class="muted center">Lädt …</p></main>
+  <footer class="foot"><span>Wicko, 25. September 2026</span><span class="sig">Zeremonienmeister</span></footer>
+</div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+(function(){
+  const { LETTERS, esc, h, ls, configured, db, renderNotConfigured, renderError } = window.JGA;
+  if(!configured) return renderNotConfigured();
+
+  const KEY = "7vm-player";
+  let players = [], questions = [];
+  let st = ls.get(KEY) || { name:"", a:{}, i:0, done:false };
+  const save = () => ls.set(KEY, st);
+  const complete = q => q.active && q.text.trim() && Array.isArray(q.options) && q.options.length === 4 && q.options.every(o => String(o).trim());
+
+  async function load(){
+    try{
+      [players, questions] = await Promise.all([db.players(), db.questions()]);
+      questions = questions.filter(complete);
+      if(!questions.length){
+        h(`<h1>Noch keine Fragen</h1><p class="muted lead">Der Zeremonienmeister ist noch nicht fertig. Schau später nochmal rein.</p>`);
+        return;
+      }
+      // Antworten auf Fragen, die es nicht mehr gibt, verwerfen
+      const ids = new Set(questions.map(q => String(q.id)));
+      Object.keys(st.a).forEach(k => { if(!ids.has(k)) delete st.a[k]; });
+      if(st.i >= questions.length) st.i = 0;
+      if(!players.some(p => p.name === st.name)) st.name = "";
+      save();
+      if(st.done) screenDone(); else if(st.name && Object.keys(st.a).length) screenQ(); else screenName();
+    }catch(e){ renderError(e, load); }
+  }
+
+  function screenName(){
+    h(`
+      <h1>Wie gut kennst du Martin?</h1>
+      <p class="muted lead">${questions.length} Fragen. Nur die Braut kennt die richtigen Antworten. Wer am nächsten dran ist, gewinnt den Joker. Martin: Du spielst gegen dich selbst – mal sehen, ob sie dich besser kennt als du dich.</p>
+      <h2>Wer bist du?</h2>
+      <div class="chips" id="names">${players.map(p=>`<button class="chip ${st.name===p.name?"on":""}" data-n="${esc(p.name)}">${esc(p.name)}</button>`).join("")}</div>
+      <div class="nav"><span></span><button class="primary" id="start" ${st.name?"":"disabled"}>Los geht's →</button></div>
+    `);
+    document.getElementById("names").onclick = e => { const b = e.target.closest(".chip"); if(!b) return; st.name = b.dataset.n; save(); screenName(); };
+    document.getElementById("start").onclick = () => { st.i = 0; save(); screenQ(); };
+  }
+
+  function screenQ(){
+    const i = st.i, q = questions[i], n = questions.length, sel = st.a[q.id];
+    h(`
+      <div class="qnum">${esc(st.name)} · Frage ${i+1} von ${n}</div>
+      <div class="progress"><i style="width:${Math.round(i/n*100)}%"></i></div>
+      <div class="qpanel"><div class="qnum">Disziplin ${i+1}</div><div class="qtext">${esc(q.text)}</div></div>
+      <div class="opts" id="opts">${q.options.map((o,j)=>`<button class="opt ${sel===j?"on":""}" data-j="${j}"><b>${LETTERS[j]}</b><span class="body">${esc(o)}</span></button>`).join("")}</div>
+      <div class="nav">
+        <button class="ghost" id="back">${i===0?"Name ändern":"← Zurück"}</button>
+        <button class="primary" id="next" ${sel!==undefined?"":"disabled"}>${i===n-1?"Abschicken":"Weiter →"}</button>
+      </div>
+    `);
+    document.getElementById("opts").onclick = e => { const b = e.target.closest(".opt"); if(!b) return; st.a[q.id] = +b.dataset.j; save(); screenQ(); };
+    document.getElementById("back").onclick = () => { if(i===0) screenName(); else { st.i--; save(); screenQ(); } };
+    document.getElementById("next").onclick = () => { if(i===n-1) submit(); else { st.i++; save(); screenQ(); } };
+  }
+
+  async function submit(){
+    const missing = questions.filter(q => st.a[q.id] === undefined);
+    if(missing.length){ st.i = questions.indexOf(missing[0]); save(); return screenQ(); }
+    h(`<div class="center" style="padding:40px 0"><p class="muted">Wird abgeschickt …</p></div>`);
+    try{
+      await db.submit(st.name, st.a);
+      st.done = true; save(); screenDone();
+    }catch(e){ renderError(e, submit); }
+  }
+
+  function screenDone(){
+    h(`
+      <div class="center"><span class="stamp">Abgegeben</span></div>
+      <h1 style="margin-top:12px">Danke, ${esc(st.name)}!</h1>
+      <p class="muted lead">Deine Antworten sind gespeichert. Die Auflösung gibt's Freitagabend am Feuer.</p>
+      <div class="stack" style="margin-top:14px">
+        <button class="ghost" id="edit">Antworten nochmal ansehen oder ändern</button>
+        <button class="ghost" id="reset">Nicht ${esc(st.name)}? Neu starten</button>
+      </div>
+    `);
+    document.getElementById("edit").onclick = () => { st.i = 0; st.done = false; save(); screenQ(); };
+    document.getElementById("reset").onclick = () => { if(confirm("Name und Antworten auf diesem Gerät löschen? Die Abgabe in der Datenbank bleibt.")){ st = { name:"", a:{}, i:0, done:false }; save(); screenName(); } };
+  }
+
+  load();
+})();
+</script>
+</body></html>

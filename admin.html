@@ -1,0 +1,292 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#c8552a">
+<meta name="robots" content="noindex">
+<title>7 gegen Martin · Einsatzleitung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:18px}
+  .tabs a{font-family:var(--body);font-weight:700;font-size:12px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;color:var(--ink);border:2px solid var(--ink);padding:7px 10px;border-radius:2px}
+  .tabs a.on{background:var(--green);color:var(--cream)}
+  .list{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center;font-size:16px}
+  .list .n{font-weight:700}
+  .list .t{font-size:13px;color:var(--ink-soft);white-space:nowrap}
+  .list .x{font-size:12px;padding:4px 8px;min-height:0}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .savebar{position:sticky;bottom:0;background:var(--paper);border-top:2px solid var(--ink);padding:10px 0;margin-top:16px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .savebar .primary{flex:1}
+  input[type=email],input[type=password]{font:inherit;width:100%;background:rgba(255,255,255,.35);color:var(--ink);border:2px solid var(--ink);border-radius:2px;padding:10px 12px}
+  .qedit .head{display:flex;justify-content:space-between;align-items:center}
+</style>
+</head><body>
+
+<div class="frame"><div class="sheet">
+<div class="wrap">
+  <header class="top">
+    <img src="assets/logo.webp" alt="" width="104" height="104">
+    <div class="eyebrow">7 vs. Martin</div>
+    <div class="brand">Quiz</div>
+    <span class="tag" id="modeTag">Einsatzleitung</span>
+  </header>
+  <div class="rule"><span>★</span></div>
+  <main id="app"><p class="muted center">Lädt …</p></main>
+  <footer class="foot"><span>Wicko, 25. September 2026</span><span class="sig">Zeremonienmeister</span></footer>
+</div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+(function(){
+  const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
+  if(!configured) return renderNotConfigured();
+  const modeTag = document.getElementById("modeTag");
+
+  const TABS = [["fragen","Fragen"],["spieler","Spieler"],["eingang","Eingang"],["aufloesung","Auflösung"]];
+  const tab = () => (location.hash.replace("#","") || "eingang");
+  const tabsHtml = () => `<nav class="tabs">${TABS.map(([k,l])=>`<a href="#${k}" class="${tab()===k?"on":""}">${l}</a>`).join("")}<a href="#" id="logout" title="Abmelden">✕</a></nav>`;
+  const bindLogout = () => { const b = document.getElementById("logout"); if(b) b.onclick = async e => { e.preventDefault(); await db.signOut(); screenLogin(); }; };
+  const busy = (btn, on, label) => { btn.disabled = on; if(label) btn.textContent = label; };
+  const isComplete = q => q.text.trim() && q.options.every(o => o.trim()) && q.correct >= 0;
+
+  // ---------- LOGIN ----------
+  function screenLogin(msg){
+    modeTag.textContent = "Zugang";
+    h(`
+      <h1>Einsatzleitung</h1>
+      <p class="muted lead">Nur für den Zeremonienmeister.</p>
+      <form class="card box stack" id="login">
+        <input type="email" id="email" placeholder="E-Mail" autocomplete="username" required>
+        <input type="password" id="pw" placeholder="Passwort" autocomplete="current-password" required>
+        ${msg ? `<p class="warn" style="margin:0">${esc(msg)}</p>` : ""}
+        <button class="primary" type="submit">Anmelden</button>
+      </form>
+      <p class="muted center" style="margin-top:16px;font-size:14px"><a href="./">Zur Spieler-Seite</a></p>
+    `);
+    document.getElementById("login").onsubmit = async e => {
+      e.preventDefault();
+      const btn = e.target.querySelector("button"); busy(btn, true, "…");
+      try{ await db.signIn(document.getElementById("email").value.trim(), document.getElementById("pw").value); route(); }
+      catch(err){ screenLogin(err.message); }
+    };
+  }
+
+  // ---------- FRAGEN ----------
+  async function screenQuestions(){
+    modeTag.textContent = "Fragen";
+    let list, solutions;
+    try{ [list, solutions] = await Promise.all([db.questions(), db.solutions()]); }catch(e){ return renderError(e, screenQuestions); }
+    list = list.map(q => ({ id:q.id, position:q.position, text:q.text||"", options:(q.options||["","","",""]).slice(0,4).concat(["","","",""]).slice(0,4), correct: solutions[q.id] ?? -1 }));
+    let dirty = false;
+
+    h(`
+      ${tabsHtml()}
+      <h1>Fragen einrichten</h1>
+      <p class="muted">Pro Frage: die richtige Antwort der Braut und drei falsche, richtige markieren. Spieler sehen nur vollständige Fragen – die Lösung sehen sie nie.</p>
+      <div class="stack" id="qlist"></div>
+      <div class="row" style="margin-top:14px"><button id="add">+ Frage hinzufügen</button></div>
+      <div class="savebar"><span id="status" class="muted" style="font-size:14px"></span><button class="primary" id="save">Speichern</button></div>
+    `);
+    bindLogout();
+    const qlist = document.getElementById("qlist");
+    const draw = () => {
+      qlist.innerHTML = list.map((q,i) => `
+        <div class="qedit stack" data-i="${i}">
+          <div class="head"><div class="qnum">Frage ${i+1}${isComplete(q)?"":" · unvollständig"}</div><button class="ghost" data-del="${i}" style="font-size:12px;min-height:0;padding:2px 4px">Entfernen</button></div>
+          <textarea data-f="t" aria-label="Fragetext">${esc(q.text)}</textarea>
+          ${[0,1,2,3].map(j => `
+            <label class="optline">
+              <input type="radio" name="c${i}" value="${j}" ${q.correct===j?"checked":""} aria-label="Richtige Antwort ${LETTERS[j]}">
+              <input type="text" data-f="o" data-j="${j}" value="${esc(q.options[j])}" placeholder="Antwort ${LETTERS[j]}">
+            </label>`).join("")}
+        </div>`).join("");
+      refresh();
+    };
+    const refresh = () => {
+      const done = list.filter(isComplete).length;
+      document.getElementById("status").innerHTML = (done === list.length ? `<span class="stamp">Einsatzbereit</span> ${done} Fragen` : `<span class="warn">${done} von ${list.length} vollständig</span>`) + (dirty ? " · ungespeichert" : "");
+    };
+    qlist.addEventListener("input", e => {
+      const box = e.target.closest(".qedit"); if(!box) return;
+      const i = +box.dataset.i, f = e.target.dataset.f;
+      if(f==="t") list[i].text = e.target.value;
+      else if(f==="o") list[i].options[+e.target.dataset.j] = e.target.value;
+      dirty = true; refresh();
+    });
+    qlist.addEventListener("change", e => {
+      if(e.target.type!=="radio") return;
+      list[+e.target.closest(".qedit").dataset.i].correct = +e.target.value; dirty = true; refresh();
+    });
+    qlist.addEventListener("click", e => {
+      const b = e.target.closest("[data-del]"); if(!b) return;
+      if(confirm("Frage " + (+b.dataset.del+1) + " entfernen? Abgegebene Antworten darauf werden bei der Auswertung ignoriert.")){ list.splice(+b.dataset.del, 1); dirty = true; draw(); }
+    });
+    document.getElementById("add").onclick = () => { list.push({ position:list.length+1, text:"", options:["","","",""], correct:-1 }); dirty = true; draw(); window.scrollTo(0, document.body.scrollHeight); };
+    document.getElementById("save").onclick = async e => {
+      busy(e.target, true, "Speichert …");
+      list.forEach((q,i) => q.position = i+1);
+      try{ await db.saveQuestions(list); dirty = false; busy(e.target, false, "Gespeichert ✓"); setTimeout(()=>e.target.textContent="Speichern",1600); draw(); }
+      catch(err){ busy(e.target, false, "Speichern"); alert("Speichern fehlgeschlagen: " + err.message); }
+    };
+    window.onbeforeunload = () => dirty ? true : undefined;
+    draw();
+  }
+
+  // ---------- SPIELER ----------
+  async function screenPlayers(){
+    modeTag.textContent = "Spieler";
+    let players;
+    try{ players = await db.players(); }catch(e){ return renderError(e, screenPlayers); }
+    h(`
+      ${tabsHtml()}
+      <h1>Spieler</h1>
+      <div class="card box stack">
+        <input type="text" id="names" value="${esc(players.map(p=>p.name).join(", "))}" aria-label="Spielernamen, kommagetrennt">
+        <p class="muted" style="margin:0;font-size:14px">Kommagetrennt. „Martin“ wird in der Auswertung separat geführt. Wer umbenannt wird, verliert seine Abgabe.</p>
+        <button class="primary" id="save">Speichern</button>
+      </div>
+    `);
+    bindLogout();
+    document.getElementById("save").onclick = async e => {
+      const names = [...new Set(document.getElementById("names").value.split(",").map(s=>s.trim()).filter(Boolean))];
+      busy(e.target, true, "Speichert …");
+      try{ await db.savePlayers(names); screenPlayers(); }
+      catch(err){ busy(e.target, false, "Speichern"); alert("Speichern fehlgeschlagen: " + err.message); }
+    };
+  }
+
+  // ---------- EINGANG ----------
+  let pollTimer = null;
+  async function screenInbox(){
+    modeTag.textContent = "Eingang";
+    let players, subs;
+    try{ [players, subs] = await Promise.all([db.players(), db.submissions()]); }catch(e){ return renderError(e, screenInbox); }
+    const byName = {}; subs.forEach(s => byName[s.player] = s);
+    const missing = players.filter(p => !byName[p.name]);
+    const url = playerUrl();
+    const fmt = t => new Date(t).toLocaleString("de-DE", { weekday:"short", hour:"2-digit", minute:"2-digit" });
+    h(`
+      ${tabsHtml()}
+      <h1>Eingang</h1>
+      <div class="card box stack">
+        <p class="muted" style="margin:0;font-size:14px">Alle bekommen denselben Link. Jeder wählt dort seinen Namen und legt los.</p>
+        <div class="code" style="font-size:14px">${esc(url)}</div>
+        <button class="primary" id="copy">Link kopieren</button>
+        <a class="btn" target="_blank" rel="noopener" href="${waLink("Einsatzbefehl: Beantworte bis Freitag das Quiz „Wie gut kennst du Martin?“. Nur die Braut kennt die Wahrheit. Wähl deinen Namen und leg los:\n" + url)}">Per WhatsApp verschicken</a>
+      </div>
+      <h2>Abgaben</h2>
+      <div class="list">
+        ${players.map(p => byName[p.name]
+          ? `<span class="n">${esc(p.name)} ✓</span><span class="t">${fmt(byName[p.name].submitted_at)}</span><button class="x" data-del="${esc(p.name)}">löschen</button>`
+          : `<span class="n muted">${esc(p.name)} –</span><span class="t">noch nichts</span><span></span>`).join("")}
+        ${subs.filter(s => !players.some(p => p.name === s.player)).map(s => `<span class="n">${esc(s.player)} ✓ <span class="muted" style="font-weight:400;font-size:13px">(kein Spieler mehr)</span></span><span class="t">${fmt(s.submitted_at)}</span><button class="x" data-del="${esc(s.player)}">löschen</button>`).join("")}
+      </div>
+      <p style="margin-top:14px">${missing.length ? `<span class="muted">Fehlt noch: ${esc(missing.map(p=>p.name).join(", "))}</span>` : `<span class="stamp">Vollzählig</span>`}</p>
+      <div class="nav"><button class="ghost" id="reload">Aktualisieren</button><a class="btn primary" href="#aufloesung" ${subs.length?"":"style='pointer-events:none;opacity:.45'"}>Zur Auflösung →</a></div>
+      <p class="muted center" style="font-size:12px;margin-top:10px">Aktualisiert sich alle 20 Sekunden.</p>
+    `);
+    bindLogout();
+    document.getElementById("copy").onclick = e => copy(url, e.target);
+    document.getElementById("reload").onclick = screenInbox;
+    document.querySelector(".list").onclick = async e => {
+      const b = e.target.closest("[data-del]"); if(!b) return;
+      if(!confirm("Abgabe von " + b.dataset.del + " löschen?")) return;
+      try{ await db.deleteSubmission(b.dataset.del); screenInbox(); }catch(err){ alert(err.message); }
+    };
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(() => { if(tab()==="eingang") screenInbox(); }, 20000);
+  }
+
+  // ---------- AUFLÖSUNG ----------
+  async function screenReveal(){
+    modeTag.textContent = "Auflösung";
+    let players, questions, solutions, subs;
+    try{ [players, questions, solutions, subs] = await Promise.all([db.players(), db.questions(), db.solutions(), db.submissions()]); }
+    catch(e){ return renderError(e, screenReveal); }
+    questions = questions.filter(q => q.active && q.text.trim() && q.options.every(o => o.trim()) && solutions[q.id] >= 0);
+    const N = questions.length;
+    const ans = {}; subs.forEach(s => ans[s.player] = s.answers || {});
+    const names = players.map(p => p.name).filter(n => ans[n]).concat(Object.keys(ans).filter(n => !players.some(p => p.name === n)));
+    const KEY = "7vm-reveal";
+    let st = ls.get(KEY) || { i:0, shown:false };
+    if(st.i >= N) st = { i:0, shown:false };
+    const save = () => ls.set(KEY, st);
+    const correct = (n, k) => ans[n][questions[k].id] === solutions[questions[k].id];
+    const scores = upTo => { const s = {}; names.forEach(n => { s[n] = 0; for(let k=0;k<upTo;k++) if(correct(n,k)) s[n]++; }); return s; };
+
+    if(!N || !names.length){
+      h(`${tabsHtml()}<h1>Auflösung</h1><p class="muted lead">${!N ? "Es gibt noch keine vollständigen Fragen mit Lösung." : "Es sind noch keine Abgaben da."}</p>`);
+      return bindLogout();
+    }
+
+    function screenQ(){
+      const i = st.i, q = questions[i], sc = scores(st.shown ? i+1 : i), sol = solutions[q.id];
+      const who = j => names.filter(n => ans[n][q.id] === j);
+      h(`
+        ${tabsHtml()}
+        <div class="tally">${names.map(n=>`<span>${esc(n)} <b>${sc[n]}</b></span>`).join("")}</div>
+        <div class="qnum">Frage ${i+1} von ${N}</div>
+        <div class="progress"><i style="width:${Math.round((i+(st.shown?1:0))/N*100)}%"></i></div>
+        <div class="qpanel"><div class="qnum">Disziplin ${i+1}</div><div class="qtext">${esc(q.text)}</div></div>
+        <div class="opts">${q.options.map((o,j)=>`
+          <div class="opt ${st.shown ? (j===sol?"correct":"wrong") : ""}" tabindex="-1">
+            <b>${LETTERS[j]}</b>
+            <span class="body">${esc(o)}<div class="who">${who(j).map(n=>`<span>${esc(n)}</span>`).join("")}</div></span>
+          </div>`).join("")}</div>
+        ${st.shown && ans["Martin"] ? `<p style="margin-top:14px">${correct("Martin", i) ? "Martin kennt sich hier selbst. Immerhin." : "Martin lag über sich selbst daneben – die Braut weiß es besser."}</p>` : ""}
+        <div class="nav">
+          <button class="ghost" id="back">${i===0?"← Eingang":"← Zurück"}</button>
+          ${st.shown
+            ? `<button class="primary" id="next">${i===N-1?"Zur Siegerehrung →":"Nächste Frage →"}</button>`
+            : `<button class="primary" id="show">Auflösen</button>`}
+        </div>
+      `);
+      bindLogout();
+      document.getElementById("back").onclick = () => { if(i===0) location.hash = "eingang"; else { st.i--; st.shown = true; save(); screenQ(); } };
+      const s = document.getElementById("show"); if(s) s.onclick = () => { st.shown = true; save(); screenQ(); };
+      const nx = document.getElementById("next"); if(nx) nx.onclick = () => { if(i===N-1) screenFinal(); else { st.i++; st.shown = false; save(); screenQ(); } };
+    }
+    function screenFinal(){
+      const sc = scores(N);
+      const others = names.filter(n => n !== "Martin").sort((a,b) => sc[b]-sc[a] || a.localeCompare(b));
+      const top = others.length ? sc[others[0]] : 0;
+      const winners = others.filter(n => sc[n] === top);
+      h(`
+        ${tabsHtml()}
+        <div class="center"><span class="stamp">Endstand</span></div>
+        <h1 style="margin-top:12px">Siegerehrung</h1>
+        <div class="stars">★ ★ ★ ★ ★</div>
+        <div class="card">
+          <div class="score">
+            ${others.map((n,k)=>`<span class="rank">${k+1}</span><span class="n">${esc(n)}${sc[n]===top?" ★":""}</span><span class="pts">${sc[n]}/${N}</span>`).join("")}
+            ${"Martin" in sc ? `<div class="martin"><span class="n">Martin über sich selbst</span><span class="pts">${sc["Martin"]}/${N}</span></div>` : ""}
+          </div>
+        </div>
+        <p style="margin-top:16px">${winners.length===1
+          ? `<b>${esc(winners[0])}</b> kennt Martin am besten und bekommt den Joker.`
+          : `Gleichstand zwischen <b>${esc(winners.join(" und "))}</b> – Stechen am Feuer: Wer schätzt Martins Schuhgröße am genauesten?`}
+        ${"Martin" in sc && winners.length ? (sc["Martin"] >= top ? " Und Martin hat sich selbst mindestens so gut gekannt wie der Beste – respektabel." : " Martin hat sich selbst schlechter eingeschätzt als " + esc(winners[0]) + ". Die Braut weiß Bescheid.") : ""}</p>
+        <div class="nav"><button class="ghost" id="back">← Nochmal durchgehen</button><button id="reset">Auflösung zurücksetzen</button></div>
+      `);
+      bindLogout();
+      document.getElementById("back").onclick = () => { st.i = 0; st.shown = false; save(); screenQ(); };
+      document.getElementById("reset").onclick = () => { if(confirm("Auflösung auf Frage 1 zurücksetzen? Die Abgaben bleiben.")){ st = { i:0, shown:false }; save(); screenQ(); } };
+    }
+    screenQ();
+  }
+
+  // ---------- Router ----------
+  async function route(){
+    window.onbeforeunload = null; clearTimeout(pollTimer);
+    let session;
+    try{ session = await db.session(); }catch(e){ return renderError(e, route); }
+    if(!session) return screenLogin();
+    ({ fragen: screenQuestions, spieler: screenPlayers, eingang: screenInbox, aufloesung: screenReveal }[tab()] || screenInbox)();
+  }
+  window.addEventListener("hashchange", route);
+  db.onAuth(s => { if(!s && modeTag.textContent !== "Zugang") screenLogin(); });
+  route();
+})();
+</script>
+</body></html>
