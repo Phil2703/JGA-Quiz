@@ -60,10 +60,32 @@ create policy "questions_admin" on public.questions for all    to authenticated 
 
 create policy "solutions_admin" on public.solutions for all to authenticated using (true) with check (true);
 
--- Spieler dürfen abgeben und ihre Abgabe überschreiben, aber keine Abgaben lesen
-create policy "submissions_insert" on public.submissions for insert to anon with check (true);
-create policy "submissions_update" on public.submissions for update to anon using (true) with check (true);
 create policy "submissions_admin"  on public.submissions for all    to authenticated using (true) with check (true);
+
+-- Spieler schreiben nie direkt in die Tabelle, sondern geben über diese Funktion ab.
+-- Sie dürfen ihre Abgabe überschreiben, aber keine Abgaben lesen.
+create or replace function public.submit_answers(p_player text, p_answers jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from public.players where name = p_player) then
+    raise exception 'Unbekannter Spieler';
+  end if;
+  if jsonb_typeof(p_answers) <> 'object' or length(p_answers::text) > 4000 then
+    raise exception 'Ungültige Antworten';
+  end if;
+  insert into public.submissions (player, answers, submitted_at)
+  values (p_player, p_answers, now())
+  on conflict (player) do update set answers = excluded.answers, submitted_at = excluded.submitted_at;
+end;
+$$;
+
+revoke all on function public.submit_answers(text, jsonb) from public;
+grant execute on function public.submit_answers(text, jsonb) to anon, authenticated;
+
 
 -- ------------------------------------------------------------
 --  Startdaten (nur wenn die Tabellen noch leer sind)

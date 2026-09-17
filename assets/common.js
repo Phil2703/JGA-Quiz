@@ -34,7 +34,7 @@
     },
     // --- Spieler ---
     async submit(player, answers){
-      return unwrap(await sb.from("submissions").upsert({ player, answers, submitted_at: new Date().toISOString() }, { onConflict: "player" }));
+      return unwrap(await sb.rpc("submit_answers", { p_player: player, p_answers: answers }));
     },
     // --- Admin ---
     async solutions(){
