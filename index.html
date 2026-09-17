@@ -2,7 +2,7 @@
 <title>7 gegen Martin Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=5">
+<link rel="stylesheet" href="assets/style.css?v=6">
 </head><body>
 
 <div class="hero" aria-hidden="true"></div>
@@ -19,8 +19,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=5"></script>
-<script src="assets/common.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="assets/common.js?v=6"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -34,6 +34,8 @@
     $("pillR").hidden = !right; $("pillR").textContent = right || "";
     $("barWrap").hidden = pct == null; $("bar").style.width = (pct || 0) + "%";
   }
+  const isMartin = () => st.name === "Martin";
+  const title = () => isMartin() ? "Wie gut kennst du dich?" : "Wie gut kennst du Martin?";
   const KEY = "7vm-player";
   let players = [], questions = [];
   let st = ls.get(KEY) || { name:"", a:{}, i:0, done:false };
@@ -62,14 +64,20 @@
     top();
     h(`
       <section class="qcard">
-      <h1>Wie gut kennst du Martin?</h1>
+      <h1 id="title">${title()}</h1>
       <p class="muted lead">${questions.length} Fragen. Nur die Braut kennt die richtigen Antworten. Wer am nächsten dran ist, gewinnt den Joker. Martin: Du spielst gegen dich selbst – mal sehen, ob sie dich besser kennt als du dich.</p>
       </section>
       <h2>Wer bist du?</h2>
       <div class="chips" id="names">${players.map(p=>`<button class="chip ${st.name===p.name?"on":""}" data-n="${esc(p.name)}">${esc(p.name)}</button>`).join("")}</div>
       <div class="nav"><span></span><button class="primary" id="start" ${st.name?"":"disabled"}>Los geht's →</button></div>
     `);
-    document.getElementById("names").onclick = e => { const b = e.target.closest(".chip"); if(!b) return; st.name = b.dataset.n; save(); screenName(); };
+    document.getElementById("names").onclick = e => {
+      const b = e.target.closest(".chip"); if(!b) return;
+      st.name = b.dataset.n; save();
+      document.querySelectorAll("#names .chip").forEach(c => c.classList.toggle("on", c === b));
+      $("title").textContent = title();
+      $("start").disabled = false;
+    };
     document.getElementById("start").onclick = () => { st.i = 0; save(); screenQ(); };
   }
 
@@ -79,7 +87,7 @@
     h(`
       <section class="qcard">
         <div class="kicker">Frage <b>${pad(i+1)}</b></div>
-        <div class="sub">Wie gut kennst du Martin?</div>
+        <div class="sub">${title()}</div>
         <hr class="dots">
         <p class="qtext">${esc(q.text)}</p>
       </section>
@@ -89,7 +97,12 @@
         <button class="primary" id="next" ${sel!==undefined?"":"disabled"}>${i===n-1?"Abschicken":"Weiter →"}</button>
       </div>
     `);
-    document.getElementById("opts").onclick = e => { const b = e.target.closest(".opt"); if(!b) return; st.a[q.id] = +b.dataset.j; save(); screenQ(); };
+    document.getElementById("opts").onclick = e => {
+      const b = e.target.closest(".opt"); if(!b) return;
+      st.a[q.id] = +b.dataset.j; save();
+      document.querySelectorAll("#opts .opt").forEach(o => { const on = o === b; o.classList.toggle("on", on); o.setAttribute("aria-checked", on); });
+      $("next").disabled = false;
+    };
     document.getElementById("back").onclick = () => { if(i===0) screenName(); else { st.i--; save(); screenQ(); } };
     document.getElementById("next").onclick = () => { if(i===n-1) submit(); else { st.i++; save(); screenQ(); } };
   }

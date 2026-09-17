@@ -44,6 +44,9 @@
     async submissions(){
       return unwrap(await sb.from("submissions").select("player,answers,submitted_at").order("submitted_at"));
     },
+    async deleteAllSubmissions(){
+      return unwrap(await sb.from("submissions").delete().neq("player", ""));
+    },
     async deleteSubmission(player){
       return unwrap(await sb.from("submissions").delete().eq("player", player));
     },

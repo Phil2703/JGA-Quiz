@@ -3,7 +3,7 @@
 <title>7 gegen Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=5">
+<link rel="stylesheet" href="assets/style.css?v=6">
 <style>
   .tabs{display:flex;gap:6px;justify-content:center;margin-bottom:20px;background:var(--bg-2);border:1px solid var(--line);border-radius:99px;padding:5px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
   .tabs a{flex:1;text-align:center;font-weight:700;font-size:13px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
@@ -30,8 +30,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=5"></script>
-<script src="assets/common.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="assets/common.js?v=6"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -182,10 +182,19 @@
       <p style="margin-top:14px">${missing.length ? `<span class="muted">Fehlt noch: ${esc(missing.map(p=>p.name).join(", "))}</span>` : `<span class="stamp">Vollzählig</span>`}</p>
       <div class="nav"><button class="ghost" id="reload">Aktualisieren</button><a class="btn primary" href="#aufloesung" ${subs.length?"":"style='pointer-events:none;opacity:.45'"}>Zur Auflösung →</a></div>
       <p class="muted center" style="font-size:12px;margin-top:10px">Aktualisiert sich alle 20 Sekunden.</p>
+      <h2>Testlauf beenden</h2>
+      <div class="card box stack">
+        <p class="muted" style="margin:0;font-size:14px">Löscht alle Abgaben und setzt die Auflösung auf Frage 1 zurück. Fragen und Spieler bleiben erhalten.</p>
+        <button id="wipe" ${subs.length?"":"disabled"}>Alle Abgaben löschen</button>
+      </div>
     `);
     bindLogout();
     document.getElementById("copy").onclick = e => copy(url, e.target);
     document.getElementById("reload").onclick = screenInbox;
+    document.getElementById("wipe").onclick = async () => {
+      if(!confirm("Wirklich ALLE " + subs.length + " Abgaben löschen? Das lässt sich nicht rückgängig machen.")) return;
+      try{ await db.deleteAllSubmissions(); ls.del("7vm-reveal"); screenInbox(); }catch(err){ alert(err.message); }
+    };
     document.querySelector(".list").onclick = async e => {
       const b = e.target.closest("[data-del]"); if(!b) return;
       if(!confirm("Abgabe von " + b.dataset.del + " löschen?")) return;
@@ -247,7 +256,7 @@
       `);
       bindLogout();
       document.getElementById("back").onclick = () => { if(i===0) location.hash = "eingang"; else { st.i--; st.shown = true; save(); screenQ(); } };
-      const s = document.getElementById("show"); if(s) s.onclick = () => { st.shown = true; save(); screenQ(); };
+      const s = document.getElementById("show"); if(s) s.onclick = () => { const y = window.scrollY; st.shown = true; save(); screenQ(); window.scrollTo(0, y); };
       const nx = document.getElementById("next"); if(nx) nx.onclick = () => { if(i===N-1) screenFinal(); else { st.i++; st.shown = false; save(); screenQ(); } };
     }
     function screenFinal(){

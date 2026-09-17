@@ -85,7 +85,7 @@ textarea{min-height:80px;resize:vertical}
 .opts{display:grid;gap:12px;margin-top:18px}
 .opt{display:flex;gap:12px;align-items:center;text-align:left;width:100%;font-family:var(--body);font-weight:600;font-size:16.5px;letter-spacing:0;padding:14px 14px 14px 16px;line-height:1.32;
   min-height:62px;background:var(--fill);border:1.5px solid var(--line);border-radius:18px;color:var(--cream);justify-content:flex-start}
-.opt b{font-family:var(--display);font-size:15px;color:var(--orange-text);min-width:18px;font-weight:400;align-self:flex-start;padding-top:2px}
+.opt b{flex:none;font-family:var(--display);font-size:26px;line-height:30px;height:30px;width:28px;text-align:center;color:var(--orange-text);font-weight:400}
 .opt .body{flex:1;min-width:0;overflow-wrap:anywhere}
 .opt .tick{flex:none;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font-size:15px;line-height:1;color:transparent;font-style:normal}
 .opt.on{border-color:var(--orange);background:rgba(200,85,42,.14)}
