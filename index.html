@@ -2,7 +2,7 @@
 <title>7 gegen Martin Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=6">
+<link rel="stylesheet" href="assets/style.css?v=7">
 </head><body>
 
 <div class="hero" aria-hidden="true"></div>
@@ -19,8 +19,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=6"></script>
-<script src="assets/common.js?v=6"></script>
+<script src="config.js?v=7"></script>
+<script src="assets/common.js?v=7"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -36,6 +36,13 @@
   }
   const isMartin = () => st.name === "Martin";
   const title = () => isMartin() ? "Wie gut kennst du dich?" : "Wie gut kennst du Martin?";
+  // Antwortreihenfolge pro Spieler und Frage mischen (fest je Name + Frage, damit sie beim Zurückblättern gleich bleibt)
+  function order(name, qid){
+    let x = 2166136261; for(const c of name + "#" + qid){ x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); }
+    const rnd = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296; };
+    const a = [0,1,2,3]; for(let k = 3; k > 0; k--){ const r = Math.floor(rnd() * (k + 1)); [a[k], a[r]] = [a[r], a[k]]; }
+    return a;
+  }
   const KEY = "7vm-player";
   let players = [], questions = [];
   let st = ls.get(KEY) || { name:"", a:{}, i:0, done:false };
@@ -91,7 +98,7 @@
         <hr class="dots">
         <p class="qtext">${esc(q.text)}</p>
       </section>
-      <div class="opts" id="opts" role="radiogroup">${q.options.map((o,j)=>`<button class="opt ${sel===j?"on":""}" data-j="${j}" role="radio" aria-checked="${sel===j}"><b>${LETTERS[j]}</b><span class="body">${esc(o)}</span><i class="tick">✓</i></button>`).join("")}</div>
+      <div class="opts" id="opts" role="radiogroup">${order(st.name, q.id).map((j,pos)=>`<button class="opt ${sel===j?"on":""}" data-j="${j}" role="radio" aria-checked="${sel===j}"><b>${LETTERS[pos]}</b><span class="body">${esc(q.options[j])}</span><i class="tick">✓</i></button>`).join("")}</div>
       <div class="nav">
         <button class="round" id="back" aria-label="${i===0?"Name ändern":"Zurück"}">←</button>
         <button class="primary" id="next" ${sel!==undefined?"":"disabled"}>${i===n-1?"Abschicken":"Weiter →"}</button>
