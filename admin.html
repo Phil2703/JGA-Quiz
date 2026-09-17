@@ -3,7 +3,7 @@
 <title>7 gegen Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=8">
+<link rel="stylesheet" href="assets/style.css?v=9">
 <style>
   .tabs{display:flex;gap:6px;justify-content:center;margin-bottom:20px;background:var(--bg-2);border:1px solid var(--line);border-radius:99px;padding:5px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
   .tabs a{flex:1;text-align:center;font-weight:700;font-size:12px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
@@ -30,8 +30,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=8"></script>
-<script src="assets/common.js?v=8"></script>
+<script src="config.js?v=9"></script>
+<script src="assets/common.js?v=9"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -314,6 +314,7 @@
           ? `<b>${esc(winners[0])}</b> kennt Martin am besten und bekommt den Joker.`
           : `Gleichstand zwischen <b>${esc(winners.join(" und "))}</b> – Stechen am Feuer: Wer schätzt Martins Schuhgröße am genauesten?`}
         ${"Martin" in sc && winners.length ? (sc["Martin"] >= top ? " Und Martin hat sich selbst mindestens so gut gekannt wie der Beste – respektabel." : " Martin hat sich selbst schlechter eingeschätzt als " + esc(winners[0]) + ". Die Braut weiß Bescheid.") : ""}</p>
+        <div class="card box" style="margin-top:14px"><div class="qnum" style="text-align:left;margin-bottom:6px">Der Joker</div><p style="margin:0">Er erzwingt einmal die Wiederholung einer Disziplin. Wann und für wen, entscheidet allein sein Besitzer: Er kann Martin damit retten oder ihm einen Sieg wieder abnehmen. Einmal benutzt, ist er weg.</p></div>
         <div class="nav"><button class="ghost" id="back">← Nochmal durchgehen</button><button id="reset">Auflösung zurücksetzen</button></div>
       `);
       bindLogout();

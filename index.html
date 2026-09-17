@@ -2,7 +2,7 @@
 <title>7 gegen Martin Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=7">
+<link rel="stylesheet" href="assets/style.css?v=9">
 </head><body>
 
 <div class="hero" aria-hidden="true"></div>
@@ -19,8 +19,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=7"></script>
-<script src="assets/common.js?v=7"></script>
+<script src="config.js?v=9"></script>
+<script src="assets/common.js?v=9"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -72,7 +72,7 @@
     h(`
       <section class="qcard">
       <h1 id="title">${title()}</h1>
-      <p class="muted lead">${questions.length} Fragen. Nur die Braut kennt die richtigen Antworten. Wer am nächsten dran ist, gewinnt den Joker. Martin: Du spielst gegen dich selbst – mal sehen, ob sie dich besser kennt als du dich.</p>
+      <p class="muted lead">${questions.length} Fragen. Nur die Braut kennt die richtigen Antworten. Wer Martin am besten kennt, gewinnt den Joker fürs Wochenende. Was er kann, erfährst du am Feuer. Martin: Du spielst gegen dich selbst – mal sehen, ob sie dich besser kennt als du dich.</p>
       </section>
       <h2>Wer bist du?</h2>
       <div class="chips" id="names">${players.map(p=>`<button class="chip ${st.name===p.name?"on":""}" data-n="${esc(p.name)}">${esc(p.name)}</button>`).join("")}</div>
