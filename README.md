@@ -1,4 +1,4 @@
-# 7 gegen Martin – JGA-Quiz
+# 7 vs. Martin – JGA-Quiz
 
 Kleine Web-App für den Junggesellenabschied: Die Jungs beantworten auf dem Handy Fragen über Martin,
 alle Antworten landen in einer Datenbank, und der Admin löst am Feuer Frage für Frage auf.

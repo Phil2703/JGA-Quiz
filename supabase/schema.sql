@@ -1,5 +1,5 @@
 -- ============================================================
---  7 gegen Martin – Datenbankschema für Supabase (Postgres)
+--  7 vs. Martin – Datenbankschema für Supabase (Postgres)
 --  Einmal im Supabase SQL-Editor ausführen (Dashboard → SQL Editor → New query).
 -- ============================================================
 
