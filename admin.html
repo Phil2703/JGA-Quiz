@@ -3,10 +3,10 @@
 <title>7 gegen Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=6">
+<link rel="stylesheet" href="assets/style.css?v=8">
 <style>
   .tabs{display:flex;gap:6px;justify-content:center;margin-bottom:20px;background:var(--bg-2);border:1px solid var(--line);border-radius:99px;padding:5px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
-  .tabs a{flex:1;text-align:center;font-weight:700;font-size:13px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
+  .tabs a{flex:1;text-align:center;font-weight:700;font-size:12px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
   .tabs a.on{background:var(--orange);color:#fff7e6}
   .tabs a#logout{flex:none;width:40px}
   .list{display:grid;grid-template-columns:1fr auto auto;gap:10px 12px;align-items:center;font-size:16px}
@@ -30,15 +30,15 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=6"></script>
-<script src="assets/common.js?v=6"></script>
+<script src="config.js?v=8"></script>
+<script src="assets/common.js?v=8"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
   if(!configured) return renderNotConfigured();
   const modeTag = document.getElementById("modeTag");
 
-  const TABS = [["fragen","Fragen"],["spieler","Spieler"],["eingang","Eingang"],["aufloesung","Auflösung"]];
+  const TABS = [["fragen","Fragen"],["spieler","Spieler"],["eingang","Eingang"],["stand","Stand"],["aufloesung","Auflösung"]];
   const tab = () => (location.hash.replace("#","") || "eingang");
   const tabsHtml = () => `<nav class="tabs">${TABS.map(([k,l])=>`<a href="#${k}" class="${tab()===k?"on":""}">${l}</a>`).join("")}<a href="#" id="logout" title="Abmelden">✕</a></nav>`;
   const bindLogout = () => { const b = document.getElementById("logout"); if(b) b.onclick = async e => { e.preventDefault(); await db.signOut(); screenLogin(); }; };
@@ -201,7 +201,42 @@
       try{ await db.deleteSubmission(b.dataset.del); screenInbox(); }catch(err){ alert(err.message); }
     };
     clearTimeout(pollTimer);
-    pollTimer = setTimeout(() => { if(tab()==="eingang") screenInbox(); }, 20000);
+    pollTimer = setTimeout(async () => { if(tab()!=="eingang") return; const y = window.scrollY; await screenInbox(); window.scrollTo(0, y); }, 20000);
+  }
+
+  // ---------- STAND (Rangliste, nur für den Admin) ----------
+  async function screenStandings(){
+    modeTag.textContent = "Stand";
+    let players, questions, solutions, subs;
+    try{ [players, questions, solutions, subs] = await Promise.all([db.players(), db.questions(), db.solutions(), db.submissions()]); }
+    catch(e){ return renderError(e, screenStandings); }
+    questions = questions.filter(q => q.active && q.text.trim() && q.options.every(o => o.trim()) && solutions[q.id]?.correct >= 0);
+    const N = questions.length;
+    const rows = subs.map(s => {
+      const a = s.answers || {};
+      return { name: s.player, pts: questions.filter(q => a[q.id] === solutions[q.id].correct).length, answered: questions.filter(q => a[q.id] !== undefined).length };
+    });
+    const martin = rows.find(r => r.name === "Martin");
+    const others = rows.filter(r => r.name !== "Martin").sort((x,y) => y.pts - x.pts || x.name.localeCompare(y.name));
+    others.forEach((r,i) => r.rank = i > 0 && others[i-1].pts === r.pts ? others[i-1].rank : i + 1);
+    const missing = players.filter(p => !rows.some(r => r.name === p.name)).map(p => p.name);
+    const perQ = questions.map((q,i) => ({ i, text: q.text, right: subs.filter(s => (s.answers||{})[q.id] === solutions[q.id].correct).length }));
+    h(`
+      ${tabsHtml()}
+      <div class="intro"><h1>Zwischenstand</h1>
+      <p class="muted lead">Nur du siehst das. ${rows.length} von ${players.length} haben abgegeben, gewertet werden ${N} Fragen.</p></div>
+      ${others.length ? `<div class="card"><div class="score">
+        ${others.map(r => `<span class="rank">${r.rank}</span><span class="n">${esc(r.name)}${r.rank===1?" ★":""}${r.answered<N?` <span class="muted" style="font-weight:400;font-size:13px">(${r.answered}/${N} beantwortet)</span>`:""}</span><span class="pts">${r.pts}/${N}</span>`).join("")}
+        ${martin ? `<div class="martin"><span class="n">Martin über sich selbst</span><span class="pts">${martin.pts}/${N}</span></div>` : ""}
+      </div></div>` : `<p class="muted center">Noch keine Abgaben${martin ? " außer Martin" : ""}.</p>${martin ? `<div class="card"><div class="score"><div class="martin" style="border:0;margin:0;padding:0"><span class="n">Martin über sich selbst</span><span class="pts">${martin.pts}/${N}</span></div></div></div>` : ""}`}
+      ${missing.length ? `<p class="muted" style="margin-top:12px;font-size:15px">Fehlt noch: ${esc(missing.join(", "))}</p>` : ""}
+      ${subs.length ? `<h2>Richtige Antworten pro Frage</h2>
+      <div class="card stack" style="gap:8px">${perQ.map(p => `<div style="display:flex;gap:10px;align-items:baseline;font-size:15px"><span class="rank" style="font-family:var(--display);color:var(--orange-text);min-width:22px">${p.i+1}</span><span style="flex:1">${esc(p.text)}</span><b style="white-space:nowrap">${p.right} von ${subs.length}</b></div>`).join("")}</div>` : ""}
+      <p class="muted center" style="font-size:12px;margin-top:14px">Aktualisiert sich alle 20 Sekunden.</p>
+    `);
+    bindLogout();
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(async () => { if(tab()!=="stand") return; const y = window.scrollY; await screenStandings(); window.scrollTo(0, y); }, 20000);
   }
 
   // ---------- AUFLÖSUNG ----------
@@ -294,7 +329,7 @@
     let session;
     try{ session = await db.session(); }catch(e){ return renderError(e, route); }
     if(!session) return screenLogin();
-    ({ fragen: screenQuestions, spieler: screenPlayers, eingang: screenInbox, aufloesung: screenReveal }[tab()] || screenInbox)();
+    ({ fragen: screenQuestions, spieler: screenPlayers, eingang: screenInbox, stand: screenStandings, aufloesung: screenReveal }[tab()] || screenInbox)();
   }
   window.addEventListener("hashchange", route);
   db.onAuth(s => { if(!s && modeTag.textContent !== "Zugang") screenLogin(); });
