@@ -1,42 +1,37 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#c8552a">
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#c8552a">
 <meta name="robots" content="noindex">
 <title>7 gegen Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=4">
+<link rel="stylesheet" href="assets/style.css?v=5">
 <style>
-  .tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:18px}
-  .tabs a{font-family:var(--body);font-weight:700;font-size:12px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;color:var(--ink);border:2px solid var(--ink);padding:7px 10px;border-radius:2px}
-  .tabs a.on{background:var(--green);color:var(--cream)}
-  .list{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center;font-size:16px}
+  .tabs{display:flex;gap:6px;justify-content:center;margin-bottom:20px;background:var(--bg-2);border:1px solid var(--line);border-radius:99px;padding:5px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
+  .tabs a{flex:1;text-align:center;font-weight:700;font-size:13px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
+  .tabs a.on{background:var(--orange);color:#fff7e6}
+  .tabs a#logout{flex:none;width:40px}
+  .list{display:grid;grid-template-columns:1fr auto auto;gap:10px 12px;align-items:center;font-size:16px}
   .list .n{font-weight:700}
-  .list .t{font-size:13px;color:var(--ink-soft);white-space:nowrap}
-  .list .x{font-size:12px;padding:4px 8px;min-height:0}
-  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .savebar{position:sticky;bottom:0;background:var(--paper);border-top:2px solid var(--ink);padding:10px 0;margin-top:16px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .list .t{font-size:13px;color:var(--muted);white-space:nowrap}
+  .list .x{font-size:12px;padding:6px 12px;min-height:0}
+  .savebar{position:sticky;bottom:0;z-index:5;background:linear-gradient(to bottom,rgba(14,21,14,0),var(--bg) 30%);padding:22px 0 calc(env(safe-area-inset-bottom) + 14px);margin-top:10px;display:flex;gap:12px;align-items:center;justify-content:space-between}
   .savebar .primary{flex:1}
-  input[type=email],input[type=password]{font:inherit;width:100%;background:rgba(255,255,255,.35);color:var(--ink);border:2px solid var(--ink);border-radius:2px;padding:10px 12px}
   .qedit .head{display:flex;justify-content:space-between;align-items:center}
+  .intro{text-align:center;margin-bottom:16px}
 </style>
-</head><body>
+</head><body class="admin">
 
-<div class="frame"><div class="sheet">
+<div class="hero" aria-hidden="true"></div>
 <div class="wrap">
-  <header class="top">
-    <img src="assets/logo.webp" alt="" width="104" height="104">
-    <div class="eyebrow">7 vs. Martin</div>
-    <div class="brand">Quiz</div>
-    <span class="tag" id="modeTag">Einsatzleitung</span>
+  <header>
+    <div class="topbar"><span class="pill" id="modeTag">Einsatzleitung</span><span style="flex:1"></span><span class="pill light">Admin</span></div>
+    <img class="logo" src="assets/logo.webp" alt="7 vs. Martin" width="68" height="68">
   </header>
-  <div class="rule"><span>★</span></div>
   <main id="app"><p class="muted center">Lädt …</p></main>
-  <footer class="foot"><span>Wicko, 25. September 2026</span><span class="sig">Zeremonienmeister</span></footer>
 </div>
-</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=4"></script>
-<script src="assets/common.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="assets/common.js?v=5"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -54,8 +49,8 @@
   function screenLogin(msg){
     modeTag.textContent = "Zugang";
     h(`
-      <h1>Einsatzleitung</h1>
-      <p class="muted lead">Nur für den Zeremonienmeister.</p>
+      <div class="intro"><h1>Einsatzleitung</h1>
+      <p class="muted lead">Nur für den Admin.</p></div>
       <form class="card box stack" id="login">
         <input type="email" id="email" placeholder="E-Mail" autocomplete="username" required>
         <input type="password" id="pw" placeholder="Passwort" autocomplete="current-password" required>
@@ -230,16 +225,21 @@
         <div class="tally">${names.map(n=>`<span>${esc(n)} <b>${sc[n]}</b></span>`).join("")}</div>
         <div class="qnum">Frage ${i+1} von ${N}</div>
         <div class="progress"><i style="width:${Math.round((i+(st.shown?1:0))/N*100)}%"></i></div>
-        <div class="qpanel"><div class="qnum">Disziplin ${i+1}</div><div class="qtext">${esc(q.text)}</div></div>
+        <section class="qcard">
+          <div class="kicker">Frage <b>${String(i+1).padStart(2,"0")}</b></div>
+          <hr class="dots">
+          <p class="qtext">${esc(q.text)}</p>
+        </section>
         <div class="opts">${q.options.map((o,j)=>`
           <div class="opt ${st.shown ? (j===sol?"correct":"wrong") : ""}" tabindex="-1">
             <b>${LETTERS[j]}</b>
             <span class="body">${esc(o)}<div class="who">${who(j).map(n=>`<span>${esc(n)}</span>`).join("")}</div></span>
+            <i class="tick">✓</i>
           </div>`).join("")}</div>
         ${st.shown && note ? `<div class="card box" style="margin-top:14px"><div class="qnum" style="text-align:left;margin-bottom:6px">Die Braut sagt</div><p style="margin:0;font-style:italic">${esc(note)}</p></div>` : ""}
         ${st.shown && ans["Martin"] ? `<p style="margin-top:14px">${correct("Martin", i) ? "Martin kennt sich hier selbst. Immerhin." : "Martin lag über sich selbst daneben – die Braut weiß es besser."}</p>` : ""}
         <div class="nav">
-          <button class="ghost" id="back">${i===0?"← Eingang":"← Zurück"}</button>
+          <button class="round" id="back" aria-label="${i===0?"Zum Eingang":"Zurück"}">←</button>
           ${st.shown
             ? `<button class="primary" id="next">${i===N-1?"Zur Siegerehrung →":"Nächste Frage →"}</button>`
             : `<button class="primary" id="show">Auflösen</button>`}

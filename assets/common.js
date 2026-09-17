@@ -84,18 +84,18 @@
   };
 
   function renderNotConfigured(){
-    h(`
+    h(`<section class="qcard">
       <h1>Noch nicht verbunden</h1>
       <p class="muted lead">In <code>config.js</code> fehlen noch die Supabase-Zugangsdaten. Anleitung steht in der README.</p>
-    `);
+    </section>`);
   }
   function renderError(err, retry){
     console.error(err);
-    h(`
+    h(`<section class="qcard">
       <h1>Verbindung gestört</h1>
       <p class="muted lead">${esc(err?.message || err)}</p>
-      <div class="center" style="margin-top:14px"><button class="primary" id="retry">Nochmal versuchen</button></div>
-    `);
+      <div class="center" style="margin-top:16px"><button class="primary" id="retry">Nochmal versuchen</button></div>
+    </section>`);
     document.getElementById("retry").onclick = retry || (() => location.reload());
   }
 

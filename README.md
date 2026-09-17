@@ -1,7 +1,7 @@
 # 7 gegen Martin – JGA-Quiz
 
 Kleine Web-App für den Junggesellenabschied: Die Jungs beantworten auf dem Handy Fragen über Martin,
-alle Antworten landen in einer Datenbank, und der Zeremonienmeister löst am Feuer Frage für Frage auf.
+alle Antworten landen in einer Datenbank, und der Admin löst am Feuer Frage für Frage auf.
 
 - **Spieler-Seite:** `index.html` – ein Link für alle, jeder wählt seinen Namen.
 - **Admin-Seite:** `admin.html` – Fragen pflegen, Spieler pflegen, Eingang beobachten, Auflösung.
