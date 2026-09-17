@@ -22,7 +22,8 @@ create table if not exists public.questions (
 -- Lösungen getrennt, nur für den Admin lesbar
 create table if not exists public.solutions (
   question_id int primary key references public.questions(id) on delete cascade,
-  correct     smallint not null check (correct between 0 and 3)
+  correct     smallint not null check (correct between 0 and 3),
+  note        text not null default ''   -- Originalton der Braut, erscheint bei der Auflösung
 );
 
 -- Abgaben: ein Datensatz pro Spieler, Antworten als {"<question_id>": <0..3>, ...}

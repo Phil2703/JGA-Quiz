@@ -38,8 +38,8 @@
     },
     // --- Admin ---
     async solutions(){
-      const rows = unwrap(await sb.from("solutions").select("question_id,correct"));
-      const m = {}; rows.forEach(r => m[r.question_id] = r.correct); return m;
+      const rows = unwrap(await sb.from("solutions").select("question_id,correct,note"));
+      const m = {}; rows.forEach(r => m[r.question_id] = { correct: r.correct, note: r.note || "" }); return m;
     },
     async submissions(){
       return unwrap(await sb.from("submissions").select("player,answers,submitted_at").order("submitted_at"));
@@ -55,7 +55,7 @@
       const rows = names.map((name, i) => ({ name, position: i + 1 }));
       if(rows.length) unwrap(await sb.from("players").upsert(rows, { onConflict: "name" }));
     },
-    // list: [{id?, position, text, options:[4], correct:-1..3}]
+    // list: [{id?, position, text, options:[4], correct:-1..3, note}]
     async saveQuestions(list){
       const existing = await db.questions();
       const keepIds = new Set(list.filter(q => q.id).map(q => q.id));
@@ -70,7 +70,7 @@
         // ids zurück in die Liste schreiben (Reihenfolge = Einfügereihenfolge)
         toInsert.forEach((q, i) => { q.id = inserted[i]?.id; });
       }
-      const withSol = list.filter(q => q.id && q.correct >= 0).map(q => ({ question_id: q.id, correct: q.correct }));
+      const withSol = list.filter(q => q.id && q.correct >= 0).map(q => ({ question_id: q.id, correct: q.correct, note: q.note || "" }));
       const noSol = list.filter(q => q.id && !(q.correct >= 0)).map(q => q.id);
       if(withSol.length) unwrap(await sb.from("solutions").upsert(withSol, { onConflict: "question_id" }));
       if(noSol.length) unwrap(await sb.from("solutions").delete().in("question_id", noSol));

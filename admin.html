@@ -3,7 +3,7 @@
 <title>7 gegen Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=3">
 <style>
   .tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:18px}
   .tabs a{font-family:var(--body);font-weight:700;font-size:12px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;color:var(--ink);border:2px solid var(--ink);padding:7px 10px;border-radius:2px}
@@ -35,8 +35,8 @@
 </div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
-<script src="assets/common.js"></script>
+<script src="config.js?v=3"></script>
+<script src="assets/common.js?v=3"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -77,7 +77,7 @@
     modeTag.textContent = "Fragen";
     let list, solutions;
     try{ [list, solutions] = await Promise.all([db.questions(), db.solutions()]); }catch(e){ return renderError(e, screenQuestions); }
-    list = list.map(q => ({ id:q.id, position:q.position, text:q.text||"", options:(q.options||["","","",""]).slice(0,4).concat(["","","",""]).slice(0,4), correct: solutions[q.id] ?? -1 }));
+    list = list.map(q => ({ id:q.id, position:q.position, text:q.text||"", options:(q.options||["","","",""]).slice(0,4).concat(["","","",""]).slice(0,4), correct: solutions[q.id]?.correct ?? -1, note: solutions[q.id]?.note || "" }));
     let dirty = false;
 
     h(`
@@ -100,6 +100,7 @@
               <input type="radio" name="c${i}" value="${j}" ${q.correct===j?"checked":""} aria-label="Richtige Antwort ${LETTERS[j]}">
               <input type="text" data-f="o" data-j="${j}" value="${esc(q.options[j])}" placeholder="Antwort ${LETTERS[j]}">
             </label>`).join("")}
+          <textarea data-f="n" style="min-height:56px;font-size:15px" placeholder="Originalton der Braut (optional, erscheint bei der Auflösung)" aria-label="Originalton der Braut">${esc(q.note)}</textarea>
         </div>`).join("");
       refresh();
     };
@@ -111,6 +112,7 @@
       const box = e.target.closest(".qedit"); if(!box) return;
       const i = +box.dataset.i, f = e.target.dataset.f;
       if(f==="t") list[i].text = e.target.value;
+      else if(f==="n") list[i].note = e.target.value;
       else if(f==="o") list[i].options[+e.target.dataset.j] = e.target.value;
       dirty = true; refresh();
     });
@@ -122,7 +124,7 @@
       const b = e.target.closest("[data-del]"); if(!b) return;
       if(confirm("Frage " + (+b.dataset.del+1) + " entfernen? Abgegebene Antworten darauf werden bei der Auswertung ignoriert.")){ list.splice(+b.dataset.del, 1); dirty = true; draw(); }
     });
-    document.getElementById("add").onclick = () => { list.push({ position:list.length+1, text:"", options:["","","",""], correct:-1 }); dirty = true; draw(); window.scrollTo(0, document.body.scrollHeight); };
+    document.getElementById("add").onclick = () => { list.push({ position:list.length+1, text:"", options:["","","",""], correct:-1, note:"" }); dirty = true; draw(); window.scrollTo(0, document.body.scrollHeight); };
     document.getElementById("save").onclick = async e => {
       busy(e.target, true, "Speichert …");
       list.forEach((q,i) => q.position = i+1);
@@ -204,7 +206,7 @@
     let players, questions, solutions, subs;
     try{ [players, questions, solutions, subs] = await Promise.all([db.players(), db.questions(), db.solutions(), db.submissions()]); }
     catch(e){ return renderError(e, screenReveal); }
-    questions = questions.filter(q => q.active && q.text.trim() && q.options.every(o => o.trim()) && solutions[q.id] >= 0);
+    questions = questions.filter(q => q.active && q.text.trim() && q.options.every(o => o.trim()) && solutions[q.id]?.correct >= 0);
     const N = questions.length;
     const ans = {}; subs.forEach(s => ans[s.player] = s.answers || {});
     const names = players.map(p => p.name).filter(n => ans[n]).concat(Object.keys(ans).filter(n => !players.some(p => p.name === n)));
@@ -212,7 +214,7 @@
     let st = ls.get(KEY) || { i:0, shown:false };
     if(st.i >= N) st = { i:0, shown:false };
     const save = () => ls.set(KEY, st);
-    const correct = (n, k) => ans[n][questions[k].id] === solutions[questions[k].id];
+    const correct = (n, k) => ans[n][questions[k].id] === solutions[questions[k].id].correct;
     const scores = upTo => { const s = {}; names.forEach(n => { s[n] = 0; for(let k=0;k<upTo;k++) if(correct(n,k)) s[n]++; }); return s; };
 
     if(!N || !names.length){
@@ -221,7 +223,7 @@
     }
 
     function screenQ(){
-      const i = st.i, q = questions[i], sc = scores(st.shown ? i+1 : i), sol = solutions[q.id];
+      const i = st.i, q = questions[i], sc = scores(st.shown ? i+1 : i), sol = solutions[q.id].correct, note = solutions[q.id].note;
       const who = j => names.filter(n => ans[n][q.id] === j);
       h(`
         ${tabsHtml()}
@@ -234,6 +236,7 @@
             <b>${LETTERS[j]}</b>
             <span class="body">${esc(o)}<div class="who">${who(j).map(n=>`<span>${esc(n)}</span>`).join("")}</div></span>
           </div>`).join("")}</div>
+        ${st.shown && note ? `<div class="card box" style="margin-top:14px"><div class="qnum" style="text-align:left;margin-bottom:6px">Die Braut sagt</div><p style="margin:0;font-style:italic">${esc(note)}</p></div>` : ""}
         ${st.shown && ans["Martin"] ? `<p style="margin-top:14px">${correct("Martin", i) ? "Martin kennt sich hier selbst. Immerhin." : "Martin lag über sich selbst daneben – die Braut weiß es besser."}</p>` : ""}
         <div class="nav">
           <button class="ghost" id="back">${i===0?"← Eingang":"← Zurück"}</button>
