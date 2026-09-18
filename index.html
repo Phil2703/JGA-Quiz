@@ -2,7 +2,7 @@
 <title>7 vs. Martin Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=12">
+<link rel="stylesheet" href="assets/style.css?v=13">
 </head><body>
 
 <div class="hero" aria-hidden="true"></div>
@@ -19,8 +19,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=12"></script>
-<script src="assets/common.js?v=12"></script>
+<script src="config.js?v=13"></script>
+<script src="assets/common.js?v=13"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -49,7 +49,7 @@
   const save = () => ls.set(KEY, st);
   const complete = q => q.active && q.text.trim() && Array.isArray(q.options) && q.options.length === 4 && q.options.every(o => String(o).trim());
 
-  let lockTimer = null;
+  let lockTimer = null, retryTimer = null;
   function screenLocked(openAt){
     top();
     const fmt = openAt.toLocaleString("de-DE", { weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
@@ -79,7 +79,9 @@
       [players, questions] = await Promise.all([db.players(), db.questions()]);
       questions = questions.filter(complete);
       if(!questions.length){
-        h(`<section class="qcard"><h1>Noch keine Fragen</h1><p class="muted lead">Das Quiz ist noch nicht freigeschaltet. Schau später nochmal rein.</p></section>`);
+        // Kann direkt zur Freigabe passieren, wenn die Handy-Uhr etwas vorgeht: von selbst weiterprobieren
+        h(`<section class="qcard"><h1>Gleich geht's los</h1><p class="muted lead">Das Quiz wird gerade freigeschaltet. Die Seite versucht es alle paar Sekunden von selbst.</p></section>`);
+        clearTimeout(retryTimer); retryTimer = setTimeout(load, 10000);
         return;
       }
       // Antworten auf Fragen, die es nicht mehr gibt, verwerfen
