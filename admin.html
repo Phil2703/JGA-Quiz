@@ -3,7 +3,7 @@
 <title>7 vs. Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=9">
+<link rel="stylesheet" href="assets/style.css?v=11">
 <style>
   .tabs{display:flex;gap:6px;justify-content:center;margin-bottom:20px;background:var(--bg-2);border:1px solid var(--line);border-radius:99px;padding:5px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
   .tabs a{flex:1;text-align:center;font-weight:700;font-size:12px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
@@ -30,8 +30,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=9"></script>
-<script src="assets/common.js?v=9"></script>
+<script src="config.js?v=11"></script>
+<script src="assets/common.js?v=11"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -78,7 +78,7 @@
     h(`
       ${tabsHtml()}
       <h1>Fragen einrichten</h1>
-      <p class="muted">Pro Frage: die richtige Antwort der Braut und drei falsche, richtige markieren. Spieler sehen nur vollständige Fragen – die Lösung sehen sie nie.</p>
+      <p class="muted">Pro Frage: die richtige Antwort von Franzi und drei falsche, richtige markieren. Spieler sehen nur vollständige Fragen – die Lösung sehen sie nie.</p>
       <div class="stack" id="qlist"></div>
       <div class="row" style="margin-top:14px"><button id="add">+ Frage hinzufügen</button></div>
       <div class="savebar"><span id="status" class="muted" style="font-size:14px"></span><button class="primary" id="save">Speichern</button></div>
@@ -95,7 +95,7 @@
               <input type="radio" name="c${i}" value="${j}" ${q.correct===j?"checked":""} aria-label="Richtige Antwort ${LETTERS[j]}">
               <input type="text" data-f="o" data-j="${j}" value="${esc(q.options[j])}" placeholder="Antwort ${LETTERS[j]}">
             </label>`).join("")}
-          <textarea data-f="n" style="min-height:56px;font-size:15px" placeholder="Originalton der Braut (optional, erscheint bei der Auflösung)" aria-label="Originalton der Braut">${esc(q.note)}</textarea>
+          <textarea data-f="n" style="min-height:56px;font-size:15px" placeholder="Originalton von Franzi (optional, erscheint bei der Auflösung)" aria-label="Originalton von Franzi">${esc(q.note)}</textarea>
         </div>`).join("");
       refresh();
     };
@@ -170,7 +170,7 @@
         <p class="muted" style="margin:0;font-size:14px">Alle bekommen denselben Link. Jeder wählt dort seinen Namen und legt los.</p>
         <div class="code" style="font-size:14px">${esc(url)}</div>
         <button class="primary" id="copy">Link kopieren</button>
-        <a class="btn" target="_blank" rel="noopener" href="${waLink("Einsatzbefehl: Beantworte bis Freitag das Quiz „Wie gut kennst du Martin?“. Nur die Braut kennt die Wahrheit. Wähl deinen Namen und leg los:\n" + url)}">Per WhatsApp verschicken</a>
+        <a class="btn" target="_blank" rel="noopener" href="${waLink("Einsatzbefehl: Beantworte bis Freitag das Quiz „Wie gut kennst du Martin?“. Nur Franzi kennt die Wahrheit. Wähl deinen Namen und leg los:\n" + url)}">Per WhatsApp verschicken</a>
       </div>
       <h2>Abgaben</h2>
       <div class="list">
@@ -280,8 +280,8 @@
             <span class="body">${esc(o)}<div class="who">${who(j).map(n=>`<span>${esc(n)}</span>`).join("")}</div></span>
             <i class="tick">✓</i>
           </div>`).join("")}</div>
-        ${st.shown && note ? `<div class="card box" style="margin-top:14px"><div class="qnum" style="text-align:left;margin-bottom:6px">Die Braut sagt</div><p style="margin:0;font-style:italic">${esc(note)}</p></div>` : ""}
-        ${st.shown && ans["Martin"] ? `<p style="margin-top:14px">${correct("Martin", i) ? "Martin kennt sich hier selbst. Immerhin." : "Martin lag über sich selbst daneben – die Braut weiß es besser."}</p>` : ""}
+        ${st.shown && note ? `<div class="card box" style="margin-top:14px"><div class="qnum" style="text-align:left;margin-bottom:6px">Franzi sagt</div><p style="margin:0;font-style:italic">${esc(note)}</p></div>` : ""}
+        ${st.shown && ans["Martin"] ? `<p style="margin-top:14px">${correct("Martin", i) ? "Martin kennt sich hier selbst. Immerhin." : "Martin lag über sich selbst daneben – Franzi weiß es besser."}</p>` : ""}
         <div class="nav">
           <button class="round" id="back" aria-label="${i===0?"Zum Eingang":"Zurück"}">←</button>
           ${st.shown
@@ -313,7 +313,7 @@
         <p style="margin-top:16px">${winners.length===1
           ? `<b>${esc(winners[0])}</b> kennt Martin am besten und bekommt den Joker.`
           : `Gleichstand zwischen <b>${esc(winners.join(" und "))}</b> – Stechen am Feuer: Wer schätzt Martins Schuhgröße am genauesten?`}
-        ${"Martin" in sc && winners.length ? (sc["Martin"] >= top ? " Und Martin hat sich selbst mindestens so gut gekannt wie der Beste – respektabel." : " Martin hat sich selbst schlechter eingeschätzt als " + esc(winners[0]) + ". Die Braut weiß Bescheid.") : ""}</p>
+        ${"Martin" in sc && winners.length ? (sc["Martin"] >= top ? " Und Martin hat sich selbst mindestens so gut gekannt wie der Beste – respektabel." : " Martin hat sich selbst schlechter eingeschätzt als " + esc(winners[0]) + ". Franzi weiß Bescheid.") : ""}</p>
         <div class="card box" style="margin-top:14px"><div class="qnum" style="text-align:left;margin-bottom:6px">Der Joker</div><p style="margin:0">Er erzwingt einmal die Wiederholung einer Disziplin. Wann und für wen, entscheidet allein sein Besitzer: Er kann Martin damit retten oder ihm einen Sieg wieder abnehmen. Einmal benutzt, ist er weg.</p></div>
         <div class="nav"><button class="ghost" id="back">← Nochmal durchgehen</button><button id="reset">Auflösung zurücksetzen</button></div>
       `);

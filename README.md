@@ -52,7 +52,7 @@ git remote add origin https://github.com/DEIN-NAME/DEIN-REPO.git && git push -u 
 
 ## Ablauf
 
-1. **Admin → Fragen:** Antworten der Braut eintragen, richtige markieren, speichern. Unvollständige Fragen sehen die Spieler nicht.
+1. **Admin → Fragen:** Antworten von Franzi eintragen, richtige markieren, speichern. Unvollständige Fragen sehen die Spieler nicht.
 2. **Admin → Eingang:** Spieler-Link kopieren oder per WhatsApp an alle schicken. Die Liste zeigt, wer schon abgegeben hat, und aktualisiert sich alle 20 Sekunden.
 3. **Spieler:** Link öffnen, Namen wählen, 12 Fragen beantworten, abschicken. Antworten können bis zur Auflösung noch geändert werden (einfach nochmal abschicken).
 4. **Admin → Auflösung:** Am Feuer Frage für Frage aufdecken, Zwischenstand läuft mit, am Ende die Siegerehrung. „Martin“ wird separat gewertet.

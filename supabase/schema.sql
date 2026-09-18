@@ -23,7 +23,7 @@ create table if not exists public.questions (
 create table if not exists public.solutions (
   question_id int primary key references public.questions(id) on delete cascade,
   correct     smallint not null check (correct between 0 and 3),
-  note        text not null default ''   -- Originalton der Braut, erscheint bei der Auflösung
+  note        text not null default ''   -- Originalton von Franzi, erscheint bei der Auflösung
 );
 
 -- Abgaben: ein Datensatz pro Spieler, Antworten als {"<question_id>": <0..3>, ...}
@@ -108,7 +108,7 @@ select * from (values
   (8,  'Wenn Martin in den Wald geht: Was vergisst er garantiert?'),
   (9,  'Was war das Erste, was Martin nach dem Antrag gesagt hat?'),
   (10, 'Was verliert Martin in der Wildnis als Erstes?'),
-  (11, 'Welche Angewohnheit von Martin hat die Braut übernommen, ohne es zu wollen?'),
+  (11, 'Welche Angewohnheit von Martin hat Franzi übernommen, ohne es zu wollen?'),
   (12, 'Wovor hat Martin wirklich Angst?')
 ) as v(position, text)
 where not exists (select 1 from public.questions);
