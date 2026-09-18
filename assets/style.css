@@ -66,7 +66,7 @@ button.round{flex:none;width:54px;padding:0;font-size:20px}
 button:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--orange-text);outline-offset:2px}
 
-input[type=text],input[type=email],input[type=password],textarea{font:inherit;font-size:16px;width:100%;background:var(--fill);color:var(--cream);border:1.5px solid var(--line-strong);border-radius:12px;padding:12px 14px;-webkit-appearance:none;appearance:none}
+input[type=text],input[type=email],input[type=password],input[type=datetime-local],textarea{font:inherit;font-size:16px;width:100%;background:var(--fill);color:var(--cream);border:1.5px solid var(--line-strong);border-radius:12px;padding:12px 14px;-webkit-appearance:none;appearance:none}
 input::placeholder,textarea::placeholder{color:rgba(242,230,194,.38)}
 textarea{min-height:80px;resize:vertical}
 

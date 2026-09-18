@@ -2,7 +2,7 @@
 <title>7 vs. Martin Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=11">
+<link rel="stylesheet" href="assets/style.css?v=12">
 </head><body>
 
 <div class="hero" aria-hidden="true"></div>
@@ -19,8 +19,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=11"></script>
-<script src="assets/common.js?v=11"></script>
+<script src="config.js?v=12"></script>
+<script src="assets/common.js?v=12"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -49,8 +49,33 @@
   const save = () => ls.set(KEY, st);
   const complete = q => q.active && q.text.trim() && Array.isArray(q.options) && q.options.length === 4 && q.options.every(o => String(o).trim());
 
+  let lockTimer = null;
+  function screenLocked(openAt){
+    top();
+    const fmt = openAt.toLocaleString("de-DE", { weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
+    h(`
+      <section class="qcard">
+        <span class="stamp">Noch gesperrt</span>
+        <h1 style="margin-top:14px">Das Quiz öffnet bald</h1>
+        <p class="muted lead">Freigabe: ${esc(fmt)} Uhr. Zwölf Fragen über Martin, fünf Minuten am Handy.</p>
+        <hr class="dots">
+        <p class="qtext" id="countdown"></p>
+      </section>
+    `);
+    const tick = () => {
+      const ms = openAt - Date.now();
+      if(ms <= 0){ clearInterval(lockTimer); return load(); }
+      const s = Math.floor(ms/1000), d = Math.floor(s/86400), hh = Math.floor(s%86400/3600), mm = Math.floor(s%3600/60), ss = s%60;
+      const el = document.getElementById("countdown"); if(!el) return clearInterval(lockTimer);
+      el.textContent = (d ? d + (d===1 ? " Tag " : " Tage ") : "") + [hh,mm,ss].map(n => String(n).padStart(2,"0")).join(":");
+    };
+    clearInterval(lockTimer); lockTimer = setInterval(tick, 1000); tick();
+  }
+
   async function load(){
     try{
+      const openAt = await db.openAt();
+      if(openAt && openAt > new Date()) return screenLocked(openAt);
       [players, questions] = await Promise.all([db.players(), db.questions()]);
       questions = questions.filter(complete);
       if(!questions.length){

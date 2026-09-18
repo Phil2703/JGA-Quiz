@@ -32,6 +32,13 @@
     async questions(){
       return unwrap(await sb.from("questions").select("id,position,text,options,active").order("position").order("id"));
     },
+    async openAt(){
+      const rows = unwrap(await sb.from("settings").select("quiz_open_at").eq("id", 1));
+      return rows && rows[0] ? new Date(rows[0].quiz_open_at) : null;
+    },
+    async saveOpenAt(date){
+      return unwrap(await sb.from("settings").update({ quiz_open_at: date.toISOString() }).eq("id", 1));
+    },
     // --- Spieler ---
     async submit(player, answers){
       return unwrap(await sb.rpc("submit_answers", { p_player: player, p_answers: answers }));

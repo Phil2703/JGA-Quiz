@@ -55,15 +55,34 @@ drop policy if exists "submissions_admin"   on public.submissions;
 create policy "players_read"   on public.players   for select to anon, authenticated using (true);
 create policy "players_admin"  on public.players   for all    to authenticated using (true) with check (true);
 
-create policy "questions_read"  on public.questions for select to anon, authenticated using (true);
+-- "questions_read" für Spieler hängt an der Freigabezeit, siehe Abschnitt Freigabe weiter unten
 create policy "questions_admin" on public.questions for all    to authenticated using (true) with check (true);
 
 create policy "solutions_admin" on public.solutions for all to authenticated using (true) with check (true);
 
 create policy "submissions_admin"  on public.submissions for all    to authenticated using (true) with check (true);
 
--- Spieler schreiben nie direkt in die Tabelle, sondern geben über diese Funktion ab.
--- Sie dürfen ihre Abgabe überschreiben, aber keine Abgaben lesen.
+-- ------------------------------------------------------------
+--  Freigabe: Spieler bekommen Fragen erst ab quiz_open_at und geben nur über submit_answers ab
+-- ------------------------------------------------------------
+create table if not exists public.settings (
+  id           int primary key default 1 check (id = 1),
+  quiz_open_at timestamptz not null
+);
+insert into public.settings (id, quiz_open_at) values (1, '2026-09-25 12:00:00+02')
+on conflict (id) do nothing;
+
+alter table public.settings enable row level security;
+drop policy if exists "settings_read"  on public.settings;
+drop policy if exists "settings_admin" on public.settings;
+create policy "settings_read"  on public.settings for select to anon, authenticated using (true);
+create policy "settings_admin" on public.settings for all    to authenticated using (true) with check (true);
+
+-- Fragen: Spieler erst ab Freigabe, Admin immer (über questions_admin)
+drop policy if exists "questions_read" on public.questions;
+create policy "questions_read" on public.questions for select to anon
+  using ((select quiz_open_at from public.settings where id = 1) <= now());
+
 create or replace function public.submit_answers(p_player text, p_answers jsonb)
 returns void
 language plpgsql
@@ -71,6 +90,9 @@ security definer
 set search_path = public
 as $$
 begin
+  if (select quiz_open_at from public.settings where id = 1) > now() then
+    raise exception 'Das Quiz ist noch nicht freigegeben';
+  end if;
   if not exists (select 1 from public.players where name = p_player) then
     raise exception 'Unbekannter Spieler';
   end if;
@@ -82,10 +104,10 @@ begin
   on conflict (player) do update set answers = excluded.answers, submitted_at = excluded.submitted_at;
 end;
 $$;
-
 revoke all on function public.submit_answers(text, jsonb) from public;
 grant execute on function public.submit_answers(text, jsonb) to anon, authenticated;
 
+notify pgrst, 'reload schema';
 
 -- ------------------------------------------------------------
 --  Startdaten (nur wenn die Tabellen noch leer sind)

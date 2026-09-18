@@ -3,7 +3,7 @@
 <title>7 vs. Martin · Einsatzleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=11">
+<link rel="stylesheet" href="assets/style.css?v=12">
 <style>
   .tabs{display:flex;gap:6px;justify-content:center;margin-bottom:20px;background:var(--bg-2);border:1px solid var(--line);border-radius:99px;padding:5px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
   .tabs a{flex:1;text-align:center;font-weight:700;font-size:12px;text-decoration:none;color:var(--muted);padding:10px 4px;border-radius:99px;min-height:40px;display:grid;place-items:center}
@@ -30,8 +30,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=11"></script>
-<script src="assets/common.js?v=11"></script>
+<script src="config.js?v=12"></script>
+<script src="assets/common.js?v=12"></script>
 <script>
 (function(){
   const { LETTERS, esc, h, ls, copy, waLink, playerUrl, configured, db, renderNotConfigured, renderError } = window.JGA;
@@ -158,7 +158,10 @@
   async function screenInbox(){
     modeTag.textContent = "Eingang";
     let players, subs;
-    try{ [players, subs] = await Promise.all([db.players(), db.submissions()]); }catch(e){ return renderError(e, screenInbox); }
+    let openAt;
+    try{ [players, subs, openAt] = await Promise.all([db.players(), db.submissions(), db.openAt()]); }catch(e){ return renderError(e, screenInbox); }
+    const p2 = n => String(n).padStart(2, "0");
+    const openLocal = openAt ? `${openAt.getFullYear()}-${p2(openAt.getMonth()+1)}-${p2(openAt.getDate())}T${p2(openAt.getHours())}:${p2(openAt.getMinutes())}` : "";
     const byName = {}; subs.forEach(s => byName[s.player] = s);
     const missing = players.filter(p => !byName[p.name]);
     const url = playerUrl();
@@ -182,6 +185,13 @@
       <p style="margin-top:14px">${missing.length ? `<span class="muted">Fehlt noch: ${esc(missing.map(p=>p.name).join(", "))}</span>` : `<span class="stamp">Vollzählig</span>`}</p>
       <div class="nav"><button class="ghost" id="reload">Aktualisieren</button><a class="btn primary" href="#aufloesung" ${subs.length?"":"style='pointer-events:none;opacity:.45'"}>Zur Auflösung →</a></div>
       <p class="muted center" style="font-size:12px;margin-top:10px">Aktualisiert sich alle 20 Sekunden.</p>
+      <h2>Freigabe</h2>
+      <div class="card box stack">
+        <p class="muted" style="margin:0;font-size:14px">Vor diesem Zeitpunkt sehen Spieler nur einen Countdown, und die Datenbank nimmt keine Abgaben an. Für einen Testlauf die Zeit kurz in die Vergangenheit legen und danach wieder zurückstellen.</p>
+        <input type="datetime-local" id="openAt" value="${openLocal}" aria-label="Freigabezeit">
+        <p style="margin:0;font-size:14px" id="openState">${openAt && openAt > new Date() ? "Quiz ist <b>gesperrt</b>." : "Quiz ist <b>offen</b>."}</p>
+        <button id="saveOpen">Freigabezeit speichern</button>
+      </div>
       <h2>Testlauf beenden</h2>
       <div class="card box stack">
         <p class="muted" style="margin:0;font-size:14px">Löscht alle Abgaben und setzt die Auflösung auf Frage 1 zurück. Fragen und Spieler bleiben erhalten.</p>
@@ -191,6 +201,11 @@
     bindLogout();
     document.getElementById("copy").onclick = e => copy(url, e.target);
     document.getElementById("reload").onclick = screenInbox;
+    document.getElementById("saveOpen").onclick = async e => {
+      const v = document.getElementById("openAt").value; if(!v) return;
+      busy(e.target, true, "Speichert …");
+      try{ await db.saveOpenAt(new Date(v)); screenInbox(); }catch(err){ busy(e.target, false, "Freigabezeit speichern"); alert("Speichern fehlgeschlagen: " + err.message); }
+    };
     document.getElementById("wipe").onclick = async () => {
       if(!confirm("Wirklich ALLE " + subs.length + " Abgaben löschen? Das lässt sich nicht rückgängig machen.")) return;
       try{ await db.deleteAllSubmissions(); ls.del("7vm-reveal"); screenInbox(); }catch(err){ alert(err.message); }
@@ -201,7 +216,13 @@
       try{ await db.deleteSubmission(b.dataset.del); screenInbox(); }catch(err){ alert(err.message); }
     };
     clearTimeout(pollTimer);
-    pollTimer = setTimeout(async () => { if(tab()!=="eingang") return; const y = window.scrollY; await screenInbox(); window.scrollTo(0, y); }, 20000);
+    const poll = async () => {
+      if(tab()!=="eingang") return;
+      const f = document.getElementById("openAt");
+      if(f && (document.activeElement === f || f.value !== openLocal)){ pollTimer = setTimeout(poll, 20000); return; }   // Feld wird gerade bearbeitet
+      const y = window.scrollY; await screenInbox(); window.scrollTo(0, y);
+    };
+    pollTimer = setTimeout(poll, 20000);
   }
 
   // ---------- STAND (Rangliste, nur für den Admin) ----------
